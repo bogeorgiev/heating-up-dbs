@@ -44,5 +44,5 @@ if __name__=="__main__":
 
     vols = 0.
     for i in range(100):
-        vols += (get_one_vol(model, x, y, device, radius=20, num_samples=200)) 
+        vols += (get_one_vol(model, x, y, device, radius=30, num_samples=200)) 
     print(vols)
