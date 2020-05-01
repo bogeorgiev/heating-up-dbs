@@ -6,10 +6,10 @@ import torchvision
 from torchvision.transforms import transforms
 from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
-from models import Wide_ResNet
+from models.cifar10.models import Wide_ResNet
 
-from attacks import Adversary
-import config as cf
+from utils.attacks import Adversary
+import utils.config as cf
 
 if __name__=="__main__":
     print("Test Distance")
@@ -22,10 +22,10 @@ if __name__=="__main__":
             ])
 
     batch_size = 1
-    dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+    dataset = torchvision.datasets.CIFAR10(root='../data/datasets/cifar10/', train=False, download=False, transform=transform)
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
     
-    model_path = str("../cifar_model_saves/noisy_0.4_WideResNet_28_10_run_1.pth")
+    model_path = str("../data/saved_models/cifar10/noisy_0.4_WideResNet_28_10_run_1.pth")
 
     device = "cuda"
     model = Wide_ResNet(28, 10, 0.3, 10).to(device)
@@ -40,5 +40,3 @@ if __name__=="__main__":
 
     adv = Adversary("pgd_linf", device)
     print(adv.get_distances(model, x, y, device, eps=0.3))
-
-
