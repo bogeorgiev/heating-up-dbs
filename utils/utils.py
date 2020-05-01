@@ -143,7 +143,7 @@ def get_vols(net, x, y, device, radius, num_samples):
 
 
 # new volume method (sampling unformly from ball)
-def get_one_vol(net, x, y, device, radius, num_samples, i):
+def get_one_vol(net, x, y, device, radius, num_samples):
     dim = 3*32*32
     example = expand(num_samples, device, x)[0]
     label = expand(num_samples, device, y)[0]
@@ -155,8 +155,9 @@ def get_one_vol(net, x, y, device, radius, num_samples, i):
     
     outcome = net(example + sample_step)
     _, pred = torch.max(outcome.data, 1)
-    correct = pred.eq(label.data).cpu().sum()
+    correct = pred.eq(label.data).sum()
     vol = (num_samples - correct.item()) / num_samples
+
     return vol
 
 

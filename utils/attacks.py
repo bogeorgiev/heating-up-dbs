@@ -42,7 +42,6 @@ class Adversary:
         return eps * delta.grad.detach().sign()
      
 
-
     def pgd(self, model, x, y, eps, alpha, num_iter):
         x, y = x.to(self.device), y.to(self.device)
         delta = torch.zeros_like(x, requires_grad=True).to(x.device)
@@ -87,7 +86,7 @@ class Adversary:
 
 
     # return array with l_2 distances to closest adv examples of x
-    def get_distances(self, model, x, y, device, eps=0.1, alpha=1e4, max_iter=1000):
+    def get_distances(self, model, x, y, device, eps=0.1, alpha=1.0e-2, max_iter=1000):
         # travel in adversarial direction until adversary is found
         # using pgd_linf method
         self.device = device
@@ -95,24 +94,26 @@ class Adversary:
         tracker = torch.zeros_like(y).to(device)
         distances = torch.zeros(y.size()).to(device).float()
         delta = torch.zeros_like(x, requires_grad=True, device=self.device)
+        org_x = x 
+
         for i in range(max_iter):
-            #print(i)
-            #print(y)
-            loss = self.criterion(model(x+delta), y)
+            x.requires_grad = True
+            model.zero_grad()
+            loss = self.criterion(model(x), y).to(device)
             loss.backward()
-            delta.data += (delta + x.shape[0]*alpha*delta.grad.data).clamp(-eps, eps)
-            #delta.data += (delta + alpha*delta.grad.detach().sign()).clamp(-eps, eps)
-            delta.grad.zero_()
-            
+            adv_x = x + alpha * x.grad.sign() 
+            eta = torch.clamp(adv_x - org_x, min=-eps, max=eps)
+            x = (org_x + eta).detach_()
+
             # eval current predictions
-            _, pred = torch.max(model(x+delta).data, 1)
-            #print(pred)
-            for j in range(len(y)):
-                if tracker[j] == 0 and pred[j] != y[j]:
-                    tracker[j] = 1
-                    distances[j] = torch.norm(delta.view(len(y), -1), dim=1)[j]
+            _, pred = torch.max(model(x).data, 1)
+            killed = (pred != y and tracker == 0)
+            tracker[killed] = 1
+            distances[killed] = torch.norm((x - org_x).view(len(y), -1), dim=1)[killed]
+
             if sum(tracker) == len(tracker):
                 break
+
         return distances, tracker
 
 
