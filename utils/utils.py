@@ -138,7 +138,7 @@ def get_vols(net, x, y, device, radius, num_samples):
         curr_example = x[i:(i+1)]
         curr_label = y[i:(i+1)]
         curr_radius = radius[i]
-        vols += [get_one_vol(net, curr_example, curr_label, device, curr_radius, num_samples, i)]
+        vols += [get_one_vol(net, curr_example, curr_label, device, curr_radius, num_samples)]
     return vols
 
 

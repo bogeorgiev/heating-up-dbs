@@ -92,6 +92,7 @@ class Adversary:
         self.device = device
         # 0: not yet found, 1: found
         tracker = torch.zeros_like(y).to(device)
+        step_counter = torch.zeros_like(y).to(device)
         distances = torch.zeros(y.size()).to(device).float()
         delta = torch.zeros_like(x, requires_grad=True, device=self.device)
         org_x = x 
@@ -107,14 +108,15 @@ class Adversary:
 
             # eval current predictions
             _, pred = torch.max(model(x).data, 1)
-            killed = (pred != y and tracker == 0)
+            killed = (pred != y) * (tracker == 0)
             tracker[killed] = 1
+            step_counter[killed] = i+1
             distances[killed] = torch.norm((x - org_x).view(len(y), -1), dim=1)[killed]
 
             if sum(tracker) == len(tracker):
                 break
 
-        return distances, tracker
+        return distances, tracker, step_counter
 
 
     def perturb(self, data, device, variance):
