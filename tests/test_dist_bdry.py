@@ -14,7 +14,6 @@ from utils.utils import get_one_vol
 
 if __name__=="__main__":
     print("Test Distance")
-
     torch.manual_seed(0)
     transform = transforms.Compose([
             #transforms.RandomCrop(32, padding=4),
