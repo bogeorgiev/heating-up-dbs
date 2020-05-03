@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 from collections import OrderedDict
@@ -17,14 +18,15 @@ def mean(liste):
         summe += el
     return summe/len(liste)
 
-
+get_accuracy = True
 device = torch.device("cuda")
-num_examples = 1000
-batch_size = 100
+num_examples = 10
+batch_size = 10
 eps = 1.
-alpha = 1e-4
+alpha = 1e-3
 max_iter = 100000
 steps = np.zeros(num_examples)
+criterion = nn.CrossEntropyLoss()
 adv = Adversary('fgsm', device)
 model_address = '../models/cifar10/trained_models/normal_WideResNet_28_10_run_1.pth'
 #model_address = '../models/cifar10/trained_models/ResNet_110.th'
@@ -57,6 +59,8 @@ transform = transforms.Compose([
 
 dataset = torchvision.datasets.CIFAR10(root='../data/datasets/cifar10', train=False, download=False, transform=transform)
 loader = torch.utils.data.DataLoader(dataset, batch_size=num_examples, shuffle=False)
+test_loader = torch.utils.data.DataLoader(dataset, batch_size = 100, shuffle=False)
+
 it = iter(loader)
 data = next(it)
 x, y = data[0].to(device), data[1].to(device)
@@ -81,5 +85,31 @@ f = open('saves/distances.txt', 'w')
 for i in range(num_examples):
     f.write(str(eps)+' '+str(distances[i])+' '+str(step_counter[i])+'\n')
 f.close()
+
+
+if get_accuracy:
+    with torch.no_grad():
+    # testing
+        model.eval()
+        #self.training = False
+        loss = 0.
+        correct = 0
+        total = 0
+        for curr_batch, (x, y) in enumerate(test_loader):
+            x_var, y_var = Variable(x), Variable(y)
+            x_var, y_var = x_var.to(device), y_var.to(device)
+            outcome = model(x_var)
+            curr_loss = criterion(outcome, y_var)
+            loss += curr_loss
+            _, pred = torch.max(outcome.data, 1)
+            correct += pred.eq(y_var.data).cpu().sum()
+            total += y_var.size(0)
+        acc = 100.*correct/total
+        print("\n \t\t\tLoss: %.4f Acc@1: %.2f%%" %(loss.item(), acc))
+    
+    f = open('accuracy.txt', 'w')
+    f.write(str(acc))
+    f.close()
+
 
 print('Experiment conducted, find results in saves!')
