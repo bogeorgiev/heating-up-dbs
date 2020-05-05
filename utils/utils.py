@@ -128,7 +128,7 @@ def get_one_cap(net, x, y, device, step, num_steps, num_walks, j):
         if killed_walks.sum() == 0.:
             break
     cap = (num_walks - killed_walks.sum()) / num_walks
-    print('Example ', j, ' Capacity ', cap.item())
+    #print('Example ', j, ' Capacity ', cap.item())
     return cap.item()
 
 
