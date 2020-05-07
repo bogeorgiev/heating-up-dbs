@@ -62,8 +62,9 @@ if __name__=="__main__":
     radius_step = torch.tensor(2.)
     radius_iter = 100
     radius = torch.tensor(40.)
-    num_steps = 100
-    step = 1.0e-1 * radius / dim_sqrt
+    alpha = 2.0e0
+    num_steps = int(100 * alpha)
+    step = 1.0e-1 * radius / (dim_sqrt * math.sqrt(alpha))
     c = 0.1
     
     normal_1d = Normal(torch.tensor(0.0), torch.tensor(1.0))
@@ -99,9 +100,10 @@ if __name__=="__main__":
                 radius += radius_step
 
             sigma = radius / dim_sqrt
+            vol = 0.
             for j in range(vol_iter):
                 vol += get_one_vol(model, x, y, device,
-                            radius=sigma, num_samples=600)
+                            radius=radius, num_samples=600, sample_full_ball=True)
             vol = torch.tensor(vol / vol_iter )
             r_iter += 1
             if r_iter > radius_iter:
@@ -110,7 +112,9 @@ if __name__=="__main__":
 
         #dist = adv.get_distances(model, x, y, device, eps=1.0e-1, alpha=1.0e-3, max_iter=100)[0]
 
-        step = 1.0e-1 * radius / dim_sqrt
+        step = 1.0e-1 * radius / (dim_sqrt * math.sqrt(alpha))
+        t = torch.tensor(num_steps * step**2)
+        rmsd = torch.sqrt(dim * t)
         cap = 0.
         cap_iter = 2
         for j in range(cap_iter):
@@ -127,11 +131,11 @@ if __name__=="__main__":
         #dist_data += [dist.cpu().detach().numpy()]
         radius_data += [radius.data]
         
-        if i % 5 == 0:
-            np.save("vol_data", np.array(vol_data))
-            np.save("cap_data", np.array(cap_data))
-            #np.save("dist_data", np.array(dist_data))
-            np.save("radius_data", np.array(radius_data))
+        if (i+1) % 5 == 0:
+            np.save("vol_data_noisy0.1", np.array(vol_data))
+            np.save("cap_data_noisy0.1", np.array(cap_data))
+            #np.save("dist_data_2", np.array(dist_data))
+            np.save("radius_data_0.1", np.array(radius_data))
 
         #print("Dist to Hyperplane ", dist)
         print("Sigma ", sigma)
@@ -140,6 +144,7 @@ if __name__=="__main__":
         print("Vol ", vol) 
         print("Cap ", cap)
         print("Isoperimetric Bound:", iso_bound)
+        print("BM reaches sphere: ", rmsd)
         #print("Mean Dist", dists.mean())
         #print("Dist from center", dist)
         print("----------------------------------")
