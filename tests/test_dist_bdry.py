@@ -47,7 +47,7 @@ if __name__=="__main__":
     dataset = torchvision.datasets.CIFAR10(root='../../../cap-vol-analysis/cap-vol-analysis/data/datasets/cifar10/', train=False, download=False, transform=transform)
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
     
-    model_path = str("../../../cap-vol-analysis/cap-vol-analysis/data/saved_models/cifar10/noisy_0.1_WideResNet_28_10_run_1.pth")
+    model_path = str("../../../cap-vol-analysis/cap-vol-analysis/data/saved_models/cifar10/noisy_0.4_WideResNet_28_10_run_1.pth")
 
     device = "cuda"
     torch.cuda.set_device(0)
@@ -58,8 +58,8 @@ if __name__=="__main__":
 
     dim = 3 * 32 * 32
     dim_sqrt = math.sqrt(dim)
-    radius_init = torch.tensor(38.)
-    radius_step = torch.tensor(2.)
+    radius_init = torch.tensor(45.)
+    radius_step = torch.tensor(0.3)
     radius_iter = 100
     radius = torch.tensor(40.)
     alpha = 2.0e0
@@ -93,8 +93,8 @@ if __name__=="__main__":
         vol = 0.
         vol_iter = 3
         r_iter = 0
-        while (vol > 0.3) or (vol < 0.1):
-            if vol > 0.3:
+        while (vol > 0.015) or (vol < 0.005):
+            if vol > 0.015:
                 radius -= radius_step
             else:
                 radius += radius_step
@@ -105,6 +105,7 @@ if __name__=="__main__":
                 vol += get_one_vol(model, x, y, device,
                             radius=radius, num_samples=600, sample_full_ball=True)
             vol = torch.tensor(vol / vol_iter )
+            #print("Vol: ", vol)
             r_iter += 1
             if r_iter > radius_iter:
                 break
@@ -132,10 +133,10 @@ if __name__=="__main__":
         radius_data += [radius.data]
         
         if (i+1) % 5 == 0:
-            np.save("vol_data_noisy0.1", np.array(vol_data))
-            np.save("cap_data_noisy0.1", np.array(cap_data))
+            np.save("vol_data_noisy04_v0015", np.array(vol_data))
+            np.save("cap_data_noisy04_v0015", np.array(cap_data))
             #np.save("dist_data_2", np.array(dist_data))
-            np.save("radius_data_0.1", np.array(radius_data))
+            np.save("radius_data_noisy04_v0015", np.array(radius_data))
 
         #print("Dist to Hyperplane ", dist)
         print("Sigma ", sigma)
@@ -148,6 +149,4 @@ if __name__=="__main__":
         #print("Mean Dist", dists.mean())
         #print("Dist from center", dist)
         print("----------------------------------")
-
-
 
