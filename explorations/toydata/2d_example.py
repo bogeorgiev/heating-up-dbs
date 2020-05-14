@@ -38,7 +38,7 @@ def main():
     parser.add_argument('--save-model', action='store_true', default=True,
                         help='enable model saving')
     parser.add_argument('--model-load-path', type=str,
-            default='../../data/saved_models/toydata/mlp_70hu_5l.pt')
+            default='../../data/saved_models/toydata/mlp_100hu_5l.pt')
 
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -56,7 +56,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(star_ds,
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-    model = MLPModel(hidden_nodes=70).to(device)
+    model = MLPModel(hidden_nodes=100).to(device)
 
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)

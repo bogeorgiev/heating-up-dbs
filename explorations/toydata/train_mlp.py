@@ -81,8 +81,6 @@ def main():
                         help='enable model saving')
     parser.add_argument('--load-model', type=bool, default=False,
                         help='loads a model from model load path')
-    parser.add_argument('--model-load-path', type=str,
-            default='./saved_models/brockett_mlp_predictor1574095149.7499995.pt')
 
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -100,7 +98,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(star_ds,
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-    model = MLPModel(hidden_nodes=70).to(device)
+    model = MLPModel(hidden_nodes=100).to(device)
 
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -111,8 +109,7 @@ def main():
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optim_state_dict'])
 
-    exp_name = str(time.time())
-
+    exp_name = "mlp_100hu_5l"
     #train loop
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, loss_fn, epoch,
