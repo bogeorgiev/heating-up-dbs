@@ -1,10 +1,11 @@
 import torch
 import math
 from torch.utils.data import Dataset
+from matplotlib import pyplot as plt
 
 class Star(Dataset):
     """Starshaped dataset"""
-    def __init__(self, line_pts=50, lines=10, margin=5.):
+    def __init__(self, line_pts=50, lines=25, margin=5.):
         super(Dataset, self).__init__()
         self.size = line_pts * lines
         self.data = torch.tensor([])
@@ -12,8 +13,9 @@ class Star(Dataset):
         for line in range(lines):
             angle = torch.tensor(line * math.pi / lines)
             t = (2 * torch.randint(0, 2, [line_pts]) - 1).float()
-            xs = torch.cos(angle) * t * (torch.rand(line_pts) + margin)
-            ys = torch.sin(angle) * t * (torch.rand(line_pts) + margin)
+            ps = torch.rand(line_pts)
+            xs = torch.cos(angle) * t * (ps + margin)
+            ys = torch.sin(angle) * t * (ps + margin)
             label = 0
             if line % 2 == 1:
                 label = 1
@@ -24,10 +26,17 @@ class Star(Dataset):
         return self.size
 
     def __getitem__(self, idx):
-        return [self.data[idx, :2], self.data[idx, 2]]
+        return [self.data[idx, :2], self.data[idx, 2].long()]
 
 if __name__=="__main__":
     ds = Star()
     print(ds.data.shape)
     print(len(ds))
     print(ds[238])
+    for sample in ds:
+        color = "red"
+        if sample[1] == 1.:
+            color = "blue"
+        plt.scatter(sample[0][0], sample[0][1], color=color)
+
+    plt.show()
