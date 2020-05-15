@@ -58,7 +58,6 @@ def main():
 
     model = MLPModel(hidden_nodes=100).to(device)
 
-    loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     checkpoint = torch.load(args.model_load_path)
