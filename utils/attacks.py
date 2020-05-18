@@ -84,7 +84,6 @@ class Adversary:
             max_loss = torch.max(max_loss, all_loss)
         return max_delta
 
-
     # return array with l_2 distances to closest adv examples of x
     def get_distances(self, model, x, y, device, eps=0.1, alpha=1.0e-2, max_iter=1000):
         # travel in adversarial direction until adversary is found
@@ -95,20 +94,21 @@ class Adversary:
         step_counter = torch.zeros_like(y).to(device)
         distances = torch.zeros(y.size()).to(device).float()
         delta = torch.zeros_like(x, requires_grad=True, device=self.device)
-        org_x = x 
+        org_x = x
 
         for i in range(max_iter):
             x.requires_grad = True
             model.zero_grad()
             loss = self.criterion(model(x), y).to(device)
             loss.backward()
-            adv_x = x + alpha * x.grad.sign() 
+            adv_x = x + alpha * x.grad.sign()
             eta = torch.clamp(adv_x - org_x, min=-eps, max=eps)
             x = (org_x + eta).detach_()
 
             # eval current predictions
             _, pred = torch.max(model(x).data, 1)
-            killed = (pred != y) * (tracker == 0)
+            killed = pred != y
+            killed[tracker == 1] = False
             tracker[killed] = 1
             step_counter[killed] = i+1
             distances[killed] = torch.norm((x - org_x).view(len(y), -1), dim=1)[killed]
@@ -118,6 +118,50 @@ class Adversary:
 
         return distances, tracker, step_counter
 
+   
+    # return array with l_2 distances to closest adv examples of x
+    def get_sliced_distances(self, model, x, pert, y, device, eps=0.1, alpha=1.0e-2, max_iter=1000):
+        # travel in adversarial direction until adversary is found
+        # using pgd_linf method
+        self.device = device
+        # 0: not yet found, 1: found
+        tracker = torch.zeros_like(y).to(device)
+        step_counter = torch.zeros_like(y).to(device)
+        distances = torch.zeros(y.size()).to(device).float()
+        #delta = torch.zeros_like(x, requires_grad=True, device=self.device)
+        #delta = torch.zeros_like(pert, requires_grad=True, device=self.device)
+
+        layer_dim = len(pert.view(len(y),-1)[0])
+        delta = pert.to(device)
+        org_delta = pert.to(device)
+
+        for i in range(max_iter):
+            delta.requires_grad = True
+            #x.requires_grad = False
+            model.zero_grad()
+            loss = self.criterion(model(x, pert=delta), y).to(device)
+            loss.backward()
+            adv_delta = delta + alpha * delta.grad.sign()
+            eta = torch.clamp(org_delta - adv_delta, min=-eps, max=eps)
+            delta = (org_delta + eta).detach_()
+            #adv_x = x + alpha * x.grad.sign()
+            #eta = torch.clamp(adv_x - org_x, min=-eps, max=eps)
+            #x = (org_x + eta).detach_()
+            # eval current predictions
+            _, pred = torch.max(model(x, pert=delta).data, 1)
+            killed = pred != y
+            killed[tracker == 1] = False
+            tracker[killed] = 1
+            step_counter[killed] = i+1
+            distances[killed] = torch.norm(delta.view(len(y), -1), dim=1)[killed]
+            #distances[killed] = torch.norm((x - org_x).view(len(y), -1), dim=1)[killed]
+            #print('iter: ', i)
+            #print('tracker: ', tracker)
+            #print('distances: ', distances)
+            if sum(tracker) == len(tracker):
+                break
+
+        return distances, tracker, step_counter
 
     def perturb(self, data, device, variance):
         return data + torch.randn(data.size()).to(device)*np.sqrt(variance)

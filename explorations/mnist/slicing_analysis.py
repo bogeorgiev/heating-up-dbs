@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.distributions.normal import Normal
 from torch.distributions.multivariate_normal import MultivariateNormal
 import torch.nn as nn
-from models.mnist.models import LeNet5, CNN
+from models.mnist.models import LeNet5, CNN, DNN4
 
 from utils.attacks import Adversary
 import utils.config as cf
@@ -49,32 +49,24 @@ if __name__=="__main__":
             transforms.ToTensor(),
             #transforms.Normalize(cf.mean['cifar10'], cf.std['cifar10']),
             ])
-    num_examples = 400
+    num_examples = 500
     batch_size = 1
     dataset = torchvision.datasets.MNIST(root='../../data/datasets/mnist/', train=False, download=True, transform=transform)
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
-    model_path = str("../../models/mnist/trained_models/normal_LeNet.pth")
+    model_path = str("../../models/mnist/trained_models/slice_DNN4.pth")
 
     device = "cuda"
     torch.cuda.set_device(0)
-    model = LeNet5().to(device)
-    """
-    dimension at intermediate layers , x = num_examples
-    input:            x 1 28 28
-    maxpool1:         x 32 14 14
-    maxpool2:         x 64 7 7
-    lin1+relu:        x 200
-    lin2/output       x 10
-    """
+    model = DNN4().to(device)
     #model = CNN.to(device)
     model.load_state_dict(torch.load(model_path))
     #model = nn.DataParallel(model)
     model.eval()
     
     # layer dependent dimension
-    dim = 200
-    pert = torch.zeros(1, 200)
+    dim = 1 * 100
+    pert = torch.zeros(1, 100)
     
     dim_sqrt = math.sqrt(dim)
     radius_init = torch.tensor(5.)
@@ -178,7 +170,7 @@ if __name__=="__main__":
         #print("Dist from center", dist)
         print("----------------------------------")
 
-    f = open('saves/cap_vol_tau_sliced_layer34_LeNet.txt', 'w')
+    f = open('saves/34_DNN4.txt', 'w')
     for i in range(num_examples):
         f.write(str(i+1)+' '+
                 str(cap_data[i].item())+' '+
