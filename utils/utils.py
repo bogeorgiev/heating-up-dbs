@@ -19,12 +19,12 @@ import eagerpy as ep
 
 
 def emp_vol(dist=1.0, num_samples=10000, dim=2):
-    error_rate = torch.randn(num_walks, dim + 2)
-    error_rate = radius * error_rate / error_rate.norm(dim=1).unsqueeze(1)
+    error_rate = torch.randn(num_samples, dim + 2)
+    error_rate = error_rate / error_rate.norm(dim=1).unsqueeze(1)
     error_rate = error_rate[:, :-2]
     error_rate = error_rate[:, 0]
-    error_rate = (error_rate > h).sum()
-    vol = error_rate.float() / num_walks
+    error_rate = (error_rate > dist).sum()
+    vol = error_rate.float() / num_samples
 
     return vol
 
@@ -32,22 +32,27 @@ def emp_vol(dist=1.0, num_samples=10000, dim=2):
 def planar_cap(target_vol=0.01, dim=2, precision=1.0e-3, start=0.0, end=1.0):
     """Returns hitting probability of a hyperplane given error rate of size target_vol"""
 
+    mid = (start + end) / 2
+    vol = emp_vol(dist=mid, dim=dim)
     while abs(vol - target_vol) > precision:
+        print("dist ", mid)
+        print("vol", vol)
         mid = (start + end) / 2
         vol = emp_vol(dist=mid, dim=dim)
         if vol > target_vol:
-            end = mid
-        else:
             start = mid
+        else:
+            end = mid
     
     dist = mid
-    t = 1.0 / dim
+    t = torch.tensor(1.0 / dim)
     normal_1d = Normal(torch.tensor(0.0), torch.tensor(1.0))
     cap = 2 * normal_1d.cdf(-dist / ( torch.sqrt(t)))
 
     if vol > 0.:
         tau = cap / vol        
-    else tau = 0.
+    else:
+        tau = 0.
 
     return cap, tau
     
