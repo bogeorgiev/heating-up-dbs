@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.distributions.normal import Normal
 import time
 import random as rd
 import matplotlib.pyplot as plt
@@ -17,6 +18,40 @@ import eagerpy as ep
 #    return x.reshape(shape)
 
 
+def emp_vol(dist=1.0, num_samples=10000, dim=2):
+    error_rate = torch.randn(num_walks, dim + 2)
+    error_rate = radius * error_rate / error_rate.norm(dim=1).unsqueeze(1)
+    error_rate = error_rate[:, :-2]
+    error_rate = error_rate[:, 0]
+    error_rate = (error_rate > h).sum()
+    vol = error_rate.float() / num_walks
+
+    return vol
+
+
+def planar_cap(target_vol=0.01, dim=2, precision=1.0e-3, start=0.0, end=1.0):
+    """Returns hitting probability of a hyperplane given error rate of size target_vol"""
+
+    while abs(vol - target_vol) > precision:
+        mid = (start + end) / 2
+        vol = emp_vol(dist=mid, dim=dim)
+        if vol > target_vol:
+            end = mid
+        else:
+            start = mid
+    
+    dist = mid
+    t = 1.0 / dim
+    normal_1d = Normal(torch.tensor(0.0), torch.tensor(1.0))
+    cap = 2 * normal_1d.cdf(-dist / ( torch.sqrt(t)))
+
+    if vol > 0.:
+        tau = cap / vol        
+    else tau = 0.
+
+    return cap, tau
+    
+    
 
 
 def save_decision_boundary(net, dataset, boundaries, run_id, epoch, batch, device):
@@ -143,12 +178,15 @@ def get_vols(net, x, y, device, radius, num_samples):
 
 
 # new volume method (sampling unformly from ball)
-def get_one_vol(net, x, y, device, radius, num_samples, sample_full_ball=False):
+def get_one_vol(net, x, y, device, radius, num_samples, sample_full_ball=False, shape=[3, 32, 32]):
     """
         x: 1 x dim 
         y: 1 x num_labels
+        shape: dataset sample shape (CIFAR10 default)
     """
-    dim = 3*32*32
+    dim = 1
+    for axis in shape:
+        dim *= axis
 
     if sample_full_ball: 
         sample_step = torch.randn(num_samples, dim + 2).to(device)
@@ -157,10 +195,14 @@ def get_one_vol(net, x, y, device, radius, num_samples, sample_full_ball=False):
     else:
         sample_step = radius * torch.randn(num_samples, dim).to(device)
 
-    sample_step = sample_step.view(num_samples, 3, 32, 32)
+    shape = [num_samples] + shape
+    sample_step = sample_step.view(shape)
+    #print(sample_step)
     
     _, pred = torch.max(net(x + sample_step), 1)
+    #print(pred)
     correct = pred.eq(y).sum()
+    #print("CORRECT", correct)
     vol = (num_samples - correct.item()) / num_samples
 
     return vol
