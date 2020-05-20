@@ -94,7 +94,7 @@ def main():
     parser.add_argument('--load-model', type=bool, default=False,
                         help='loads a model from model load path')
     parser.add_argument('--model-load-path', type=str,
-            default='../../data/saved_models/toydata/mlp_40hu_5l.pt')
+            default='../../data/saved_models/toydata/mlp_100hu_5l.pt')
     parser.add_argument('--stats-save-path', type=str,
             default='../../data/stats/toydata/')
 
@@ -112,14 +112,14 @@ def main():
     loader = torch.utils.data.DataLoader(star_ds,
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
-    model = MLPModel(hidden_nodes=40).to(device)
-
+    model = MLPModel(hidden_nodes=100).to(device)
     checkpoint = torch.load(args.model_load_path)
     model.load_state_dict(checkpoint['model_state_dict'])
     #model = Wedge(angle=math.pi, h=-0.5, dim=2).to(device)
     model.eval()
 
-    exp_name = "mlp_40hu_5l"
+    exp_name = "mlp_100hu_5l"
+    save_stats = False
 
     dim = 2
     print("Running: ", exp_name)
@@ -151,7 +151,21 @@ def main():
     dist_data = []
     radius_data = []
 
-    for i in range(100):
+    save_coords = False 
+    if save_coords:
+        xs = []
+        ys = []
+        for i in range(1000):
+            data = next(it)
+            x, y = data[0].to(device), data[1].to(device)
+            xs += [x[0].data.cpu().numpy()]
+            ys += [y.data.cpu().numpy()]
+
+        np.save(args.stats_save_path + "xs", np.array(xs))
+        np.save(args.stats_save_path + "ys", np.array(ys))
+        print("Coords saved")
+
+    for i in range(1000):
         #data = [torch.zeros(3).float().to(device).unsqueeze(0), torch.zeros(1).long().to(device)] 
         data = next(it)
         x, y = data[0].to(device), data[1].to(device)
@@ -199,7 +213,7 @@ def main():
         #dist_data += [dist.cpu().detach().numpy()]
         radius_data += [radius.data]
         
-        if (i+1) % 5 == 0:
+        if (i+1) % 5 == 0 and save_stats == True:
             np.save(args.stats_save_path + "vol_data_" + exp_name, np.array(vol_data))
             np.save(args.stats_save_path + "cap_data_" + exp_name, np.array(cap_data))
             #np.save("dist_data_2", np.array(dist_data))
