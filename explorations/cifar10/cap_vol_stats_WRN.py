@@ -1,5 +1,5 @@
 import sys
-sys.path.append("../")
+sys.path.append("../../")
 import math
 import torch
 import numpy as np
@@ -17,7 +17,7 @@ import utils.config as cf
 from utils.utils import get_one_vol, get_one_cap
 
 
-def mean_dist(x, radius, dist_samples=500, dist_iter=2):
+def mean_dist(x, radius, dist_samples=500, dist_iter=1):
     dim = 3 * 32 * 32
     dim_sqrt = math.sqrt(dim)
     sigma = radius / dim_sqrt
@@ -34,7 +34,6 @@ def mean_dist(x, radius, dist_samples=500, dist_iter=2):
 
 
 if __name__=="__main__":
-    print("Test Distance")
 
     torch.manual_seed(0)
     transform = transforms.Compose([
@@ -44,11 +43,12 @@ if __name__=="__main__":
             transforms.Normalize(cf.mean['cifar10'], cf.std['cifar10']),
             ])
     batch_size = 1
-    dataset = torchvision.datasets.CIFAR10(root='../../../cap-vol-analysis/cap-vol-analysis/data/datasets/cifar10/', train=False, download=False, transform=transform)
+    dataset = torchvision.datasets.CIFAR10(root='../../../../cap-vol-analysis/cap-vol-analysis/data/datasets/cifar10/', train=False, download=False, transform=transform)
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
     
-    model_path = str("../../../cap-vol-analysis/cap-vol-analysis/data/saved_models/cifar10/noisy_0.4_WideResNet_28_10_run_1.pth")
+    model_path = str("../../../../cap-vol-analysis/cap-vol-analysis/data/saved_models/cifar10/normal_WideResNet_28_10_run_1.pth")
 
+    exp_name = "normal_v0015_d"
     device = "cuda"
     torch.cuda.set_device(0)
     model = Wide_ResNet(28, 10, 0.3, 10).to(device)
@@ -60,7 +60,7 @@ if __name__=="__main__":
     dim_sqrt = math.sqrt(dim)
     radius_init = torch.tensor(45.)
     radius_step = torch.tensor(0.3)
-    radius_iter = 100
+    radius_iter = 200
     radius = torch.tensor(40.)
     alpha = 2.0e0
     num_steps = int(100 * alpha)
@@ -84,6 +84,7 @@ if __name__=="__main__":
     cap_data = []
     dist_data = []
     radius_data = []
+    iso_data = []
 
     for i in range(1000):
         data = next(it)
@@ -109,7 +110,7 @@ if __name__=="__main__":
             r_iter += 1
             if r_iter > radius_iter:
                 break
-        #dists = mean_dist(x, radius)
+        dists = mean_dist(x, radius)
 
         #dist = adv.get_distances(model, x, y, device, eps=1.0e-1, alpha=1.0e-3, max_iter=100)[0]
 
@@ -118,25 +119,28 @@ if __name__=="__main__":
         rmsd = torch.sqrt(dim * t)
         cap = 0.
         cap_iter = 2
-        for j in range(cap_iter):
-            cap += get_one_cap(model, x, y, device,
-                        step=step, num_steps=num_steps, num_walks=500, j="")
-        cap = torch.tensor(cap / cap_iter )
+        #for j in range(cap_iter):
+        #    cap += get_one_cap(model, x, y, device,
+        #                step=step, num_steps=num_steps, num_walks=500, j="")
+        #cap = torch.tensor(cap / cap_iter )
 
         iso_bound = 0
         if vol < 0.5:
             iso_bound = -sigma * normal_1d.icdf(vol)
 
         vol_data += [vol.data]
-        cap_data += [cap.data]
-        #dist_data += [dist.cpu().detach().numpy()]
+        #cap_data += [cap.data]
+        dist_data += [dists.mean().cpu().detach().numpy()]
         radius_data += [radius.data]
-        
-        if (i+1) % 5 == 0:
-            np.save("vol_data_noisy04_v0015", np.array(vol_data))
-            np.save("cap_data_noisy04_v0015", np.array(cap_data))
+        iso_data += [iso_bound] 
+
+        if (i+1) % 2 == 0:
+            np.save("vol_data_" + exp_name, np.array(vol_data))
+            np.save("dist_data_" + exp_name, np.array(dist_data))
+            np.save("iso_data_" + exp_name, np.array(iso_data))
+            #np.save("cap_data_noisy04_v0015", np.array(cap_data))
             #np.save("dist_data_2", np.array(dist_data))
-            np.save("radius_data_noisy04_v0015", np.array(radius_data))
+            #np.save("radius_data_noisy04_v0015", np.array(radius_data))
 
         #print("Dist to Hyperplane ", dist)
         print("Sigma ", sigma)
@@ -146,7 +150,7 @@ if __name__=="__main__":
         print("Cap ", cap)
         print("Isoperimetric Bound:", iso_bound)
         print("BM reaches sphere: ", rmsd)
-        #print("Mean Dist", dists.mean())
+        print("Mean Dist", dists.mean())
         #print("Dist from center", dist)
         print("----------------------------------")
 

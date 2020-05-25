@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
 import time
+import math
 import random as rd
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
@@ -198,7 +199,7 @@ def get_one_vol(net, x, y, device, radius, num_samples, sample_full_ball=False, 
         sample_step = radius * sample_step / sample_step.norm(dim=1).unsqueeze(1)
         sample_step = sample_step[:, :-2]
     else:
-        sample_step = radius * torch.randn(num_samples, dim).to(device)
+        sample_step = sigma * torch.randn(num_samples, dim).to(device)
 
     shape = [num_samples] + shape
     sample_step = sample_step.view(shape)
