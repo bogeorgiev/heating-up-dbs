@@ -29,16 +29,16 @@ def emp_vol(dist=1.0, num_samples=10000, dim=2):
     return vol
 
 
-def planar_cap(target_vol=0.01, dim=2, precision=1.0e-3, start=0.0, end=1.0):
+def planar_cap(target_vol=0.01, dim=2, precision=1.0e-3, start=0.0, end=1.0, num_samples=10000):
     """Returns hitting probability of a hyperplane given error rate of size target_vol"""
 
     mid = (start + end) / 2
-    vol = emp_vol(dist=mid, dim=dim)
+    vol = emp_vol(dist=mid, dim=dim, num_samples=num_samples)
     while abs(vol - target_vol) > precision:
-        print("dist ", mid)
-        print("vol", vol)
+        #print("dist ", mid)
+        #print("vol", vol)
         mid = (start + end) / 2
-        vol = emp_vol(dist=mid, dim=dim)
+        vol = emp_vol(dist=mid, dim=dim, num_samples=num_samples)
         if vol > target_vol:
             start = mid
         else:
