@@ -67,8 +67,9 @@ class Cone(nn.Module):
 
     def forward(self, x):
         x = self.normal1(x)
-        
+
         return x
+
 def compute_capacity():
     for j in range(mesh_size):
 
