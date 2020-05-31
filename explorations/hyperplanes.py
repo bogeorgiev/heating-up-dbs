@@ -64,14 +64,10 @@ def compute_mesh(compute_empirical_vol, compute_empirical_cap, dim=3072, dist=0.
 
     tau = torch.tensor(caps) / torch.tensor(vols)
     xs_rough = np.linspace(0, dist, mesh_size)
-    xs = np.linspace(0, dist, 300)
+    xs = np.linspace(0, dist, 50)
     bspline = make_interp_spline(xs_rough, tau.numpy())
     ys = bspline(xs)
     ys[0] = 2.0
-
-    if (compute_empirical_cap):
-        print("MSD (empirical): ", msd)
-        print("Hitting Prob (empirical): ", hits / num_walks)
 
     np.save("xs_dim"+str(dim), xs)
     np.save("ys_dim"+str(dim), ys)
@@ -84,10 +80,10 @@ def plot_tau_stats(dims):
     ax.set_ylabel("Saturation")
     ax.set_xlabel("Distance from starting point to hyperplane")
     for dim in dims:
-        xs, ys = compute_mesh(compute_empirical_vol=True, compute_empirical_cap=False, dist=0.5, dim=dim, mesh_size=10)
+        xs, ys = compute_mesh(compute_empirical_vol=True, compute_empirical_cap=False, dist=0.4, dim=dim, mesh_size=10)
         ax.plot(xs, ys, label=str(dim)) 
 
-    labelLines(plt.gca().get_lines(), xvals=(0.2, 0.5), zorder=2.5)
+    labelLines(plt.gca().get_lines(), xvals=(0.2, 0.4), zorder=2.5)
     plt.show()
 
 def main():
