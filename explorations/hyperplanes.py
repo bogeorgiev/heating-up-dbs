@@ -1,7 +1,6 @@
 import sys
 sys.path.append("../")
 import torch
-from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.normal import Normal
 import math
 from matplotlib import pyplot as plt
@@ -11,7 +10,7 @@ from scipy.interpolate import make_interp_spline
 from utils.utils import planar_cap
 
 
-def compute_vol(h, compute_empirical_vol, num_samples=500000, dim=3072):
+def compute_vol(h, compute_empirical_vol, num_samples=1000000, dim=3072):
     if (compute_empirical_vol):
         error_rate = torch.randn(num_samples, dim + 2)
         error_rate = error_rate / error_rate.norm(dim=1).unsqueeze(1)
@@ -27,11 +26,12 @@ def compute_vol(h, compute_empirical_vol, num_samples=500000, dim=3072):
     return vol
 
 
-def compute_cap(h, compute_empirical_cap, dim=3072, num_walks=1000):
-    t = torch.tensor(1.0 / dim)
+def compute_cap(h, compute_empirical_cap, dim=3072, num_walks=1000, step=0.1, num_steps=100):
+    t = torch.tensor(num_steps * step**2)
     normal_1d = Normal(torch.tensor(0.0), torch.tensor(1.0))
     hits = 0
     if (compute_empirical_cap):
+        sample = torch.zeros(dim)
         for i in range(num_walks):
             walk_has_hit_target = False
             for s in range(int( num_steps)):
@@ -41,10 +41,8 @@ def compute_cap(h, compute_empirical_cap, dim=3072, num_walks=1000):
                     walk_has_hit_target = True
                     break
 
-            msd += sample.norm()
             sample = torch.zeros(dim)
 
-        msd = msd / num_walks
         cap = hits / num_walks
 
     else:
@@ -79,38 +77,41 @@ def compute_mesh(compute_empirical_vol, compute_empirical_cap, dim=3072, dist=0.
     np.save("ys_dim"+str(dim), ys)
     return xs, ys
 
-def plot_tau_stats():
-    dims = [10, 20, 30, 40, 50]
+def plot_tau_stats(dims):
     fig = plt.figure()
     ax = fig.add_subplot()
     ax.set_title("Isocapacitory Saturation for a Hyperplane")
     ax.set_ylabel("Saturation")
     ax.set_xlabel("Distance from starting point to hyperplane")
     for dim in dims:
-        xs, ys = compute_mesh(compute_empirical_vol=True, compute_empirical_cap=False, dist=0.5, dim=dim, mesh_size=7)
+        xs, ys = compute_mesh(compute_empirical_vol=True, compute_empirical_cap=False, dist=0.5, dim=dim, mesh_size=10)
         ax.plot(xs, ys, label=str(dim)) 
 
     labelLines(plt.gca().get_lines(), xvals=(0.2, 0.5), zorder=2.5)
     plt.show()
 
 def main():
+    #A test for computing Brownian motion hitting, relative error volume and isocapacitory saturation for a hyperplane in dim=3072
     dim = 3 * 32 * 32 #CIFAR10 dim
     alpha = 1.0e0
     num_steps = 100 * alpha
-    step = 0.1 / math.sqrt(alpha)
-    t = torch.tensor(1.0 / dim)
-
-    sample = torch.zeros(dim)
-    msd = .0
+    step = 0.1 / math.sqrt(dim * alpha)
+    t = num_steps * step**2 
+    dist = 0.041
     msd_th = math.sqrt(t * dim)
-    radius = msd_th
-
+    emp_cap = compute_cap(dist, compute_empirical_cap=True, num_walks=1000, step=step, num_steps=num_steps)
+    th_cap = compute_cap(dist, compute_empirical_cap=False, step=step, num_steps=num_steps)
+    emp_vol = compute_vol(dist, compute_empirical_vol=True, num_samples=10000)
     print("BM run for time: ", t)
-    print("RMSD (theoretical): ", msd_th)
-    #print("Cap ", compute_cap(dist, compute_empirical_cap))
-    #print("Vol ", compute_vol(dist, compute_empirical_vol))
+    print("RMSD: ", msd_th)
+    print("Empirical Hitting Probability: ", emp_cap)
+    print("Theoretical Hitting Probability: ", th_cap)
+    print("Relative Volume: ", emp_vol)
+    print("Isocapacitory Saturation: ", emp_cap / emp_vol)
 
-    plot_tau_stats()
+    #Plot isocapacitory saturation for given dimesions
+    dims = [10, 20, 30, 40, 50]
+    plot_tau_stats(dims)
 
 if __name__=="__main__":
     main()
