@@ -9,6 +9,11 @@ import numpy as np
 from scipy.interpolate import make_interp_spline
 from utils.utils import planar_cap
 
+"""
+    Hyperplane analysis of hitting probabilities and relative error volume.
+    The hitting probability of a hyperplane in dim=3072 (CIFAR10) BM is evaluated.
+    Plotting functions illustrating the isocapacitory saturation (tau) in terms of the distance to the hyperplane and the dimension are provided.
+"""
 
 def compute_vol(h, compute_empirical_vol, num_samples=1000000, dim=3072):
     if (compute_empirical_vol):
