@@ -1,6 +1,6 @@
 # Heating up Decision Boundaries
 
-This repository contains the source code of the NeuRips 2020 submission 'Heating up decision boundaries: some aspects of adversarial examples, compression and generalization bounds. Please see the full paper at ----------
+This repository contains the source code of the ICLR 2021 paper 'Heating up decision boundaries: some aspects of adversarial examples, compression and generalization bounds. Please find the full paper at https://openreview.net/forum?id=UwGY2qjqoLD.
 
 In this work, we consider an MLP model as proof of principle trained on planar geometric data, LeNet-5 and basic CNN architectures trained on MNIST and finally a Wide Residual Network 28-10 and 32, 44 and 56 layered ResNets trained on CIFAR10. Please find the respective code for all training methods in directories 'models' and 'train'. 
 
