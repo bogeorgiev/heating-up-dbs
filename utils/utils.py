@@ -128,7 +128,27 @@ def get_one_cap(net, x, y, device, step, num_steps, num_walks, j):
         if killed_walks.sum() == 0.:
             break
     cap = (num_walks - killed_walks.sum()) / num_walks
-    print('Example ', j, ' Capacity ', cap.item())
+    #print('Example ', j, ' Capacity ', cap.item())
+    return cap.item()
+
+
+def get_one_sliced_cap(net, x, init_walk, y, device, step, num_steps, num_walks, j):
+    
+    walks_in_layer = expand(num_walks, device, init_walk)[0]
+
+    points, labels = expand(num_walks, device, x, y)
+    killed_walks = torch.ones(num_walks).to(device)
+    
+    for i in range(num_steps):
+        #walks = walks + torch.randn(walks.size(), device=device) * step
+        walks_in_layer = walks_in_layer + torch.randn(walks_in_layer.size(), device=device) * step
+        outcome = net(points, pert=walks_in_layer)
+        _, pred = torch.max(outcome.data, 1)
+        killed_walks[pred != labels] *= 0.
+        if killed_walks.sum() == 0.:
+            break
+    cap = (num_walks - killed_walks.sum()) / num_walks
+    #print('Example ', j, ' Capacity ', cap.item())
     return cap.item()
 
 
@@ -143,19 +163,50 @@ def get_vols(net, x, y, device, radius, num_samples):
 
 
 # new volume method (sampling unformly from ball)
-def get_one_vol(net, x, y, device, radius, num_samples):
-    dim = 3*32*32
-    example = expand(num_samples, device, x)[0]
-    label = expand(num_samples, device, y)[0]
+def get_one_vol(net, x, y, device, radius, num_samples, sample_full_ball=False):
+    """
+        x: 1 x dim 
+        y: 1 x num_labels
+    """
+    dim = 28*28
+
+    if sample_full_ball: 
+        sample_step = torch.randn(num_samples, dim + 2).to(device)
+        sample_step = radius * sample_step / sample_step.norm(dim=1).unsqueeze(1)
+        sample_step = sample_step[:, :-2]
+    else:
+        sample_step = radius * torch.randn(num_samples, dim).to(device)
+
+    sample_step = sample_step.view(num_samples, 1, 28, 28)
     
-    sample_step = torch.randn(num_samples, dim + 2).to(device)
-    sample_step = radius * sample_step / sample_step.norm(dim=1).unsqueeze(1)
-    sample_step = sample_step[:, :-2]
-    sample_step = sample_step.view(num_samples, 3, 32, 32)
+    _, pred = torch.max(net(x + sample_step), 1)
+    correct = pred.eq(y).sum()
+    vol = (num_samples - correct.item()) / num_samples
+
+    return vol
+
+
+# new volume method (sampling unformly from ball)
+def get_one_sliced_vol(net, x, curr_dim, y, device, radius, num_samples, sample_full_ball=False):
+    """
+        x: 1 x dim 
+        y: 1 x num_labels
+    """
+    dim = len(curr_dim.view(1,-1)[0])
+    curr_dim = expand(num_samples, device, curr_dim)[0]
+
+    if sample_full_ball: 
+        sample_step = torch.randn(num_samples, dim + 2).to(device)
+        sample_step = radius * sample_step / sample_step.norm(dim=1).unsqueeze(1)
+        sample_step = sample_step[:, :-2]
+    else:
+        sample_step = radius * torch.randn(num_samples, dim).to(device)
+
+    sample_step = sample_step.resize_(curr_dim.size())
+    #sample_step = sample_step.view(num_samples, 1, 28, 28)
     
-    outcome = net(example + sample_step)
-    _, pred = torch.max(outcome.data, 1)
-    correct = pred.eq(label.data).sum()
+    _, pred = torch.max(net(x, sample_step), 1)
+    correct = pred.eq(y).sum()
     vol = (num_samples - correct.item()) / num_samples
 
     return vol
